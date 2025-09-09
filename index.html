@@ -3,27 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Hospital Mini‑Dashboard (LIFF)</title>
-  <!-- Tailwind (CDN) -->
+  <title>Hospital Mini Dashboard</title>
+
+  <!-- TailwindCSS (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js (optional) -->
+  <!-- Chart.js (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <!-- LIFF SDK -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <!-- LIFF SDK (ถ้ายังไม่ใช้ เปิดคอมเมนต์บรรทัดล่างนี้เมื่อพร้อม) -->
+  <!-- <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script> -->
+
+  <meta name="description" content="Mini dashboard ตัวอย่างสำหรับโรงพยาบาล ใช้กับ GitHub Pages หรือ LIFF ได้" />
   <style>
-    /* Safe area for notched phones */
-    :root { --safe-top: env(safe-area-inset-top); --safe-bottom: env(safe-area-inset-bottom); }
+    :root { --safe-bottom: env(safe-area-inset-bottom); }
     body { padding-bottom: calc(12px + var(--safe-bottom)); }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
-  <!-- Top Bar -->
-  <header class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b">
+  <!-- Top bar -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b">
     <div class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
-      <img id="userPicture" class="w-9 h-9 rounded-full hidden" alt="profile" />
+      <img id="userPicture" class="w-9 h-9 rounded-full hidden" alt="profile"/>
       <div>
-        <h1 class="text-lg font-semibold">แดชบอร์ด รพ. (Mini)</h1>
-        <p id="userName" class="text-xs text-gray-500">กำลังโหลดข้อมูลผู้ใช้…</p>
+        <h1 class="text-lg font-semibold">แดชบอร์ด รพ. (ตัวอย่าง)</h1>
+        <p id="userName" class="text-xs text-gray-500">โหมดสาธิต (ยังไม่ได้เชื่อม LIFF)</p>
       </div>
       <div class="ml-auto flex items-center gap-2">
         <button id="btnShare" class="px-3 py-1.5 rounded-xl bg-black text-white text-sm">แชร์</button>
@@ -33,12 +35,12 @@
   </header>
 
   <main class="max-w-5xl mx-auto p-4">
-    <!-- Alerts -->
+    <!-- Alert -->
     <div id="alert" class="hidden mb-4 rounded-xl p-3 text-sm bg-yellow-50 border border-yellow-200 text-yellow-800"></div>
 
-    <!-- KPI Cards -->
-    <section aria-labelledby="kpiTitle" class="mb-5">
-      <h2 id="kpiTitle" class="text-base font-semibold mb-3">ภาพรวมวันนี้</h2>
+    <!-- KPIs -->
+    <section class="mb-5">
+      <h2 class="text-base font-semibold mb-3">ภาพรวมวันนี้</h2>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div class="rounded-2xl p-4 bg-white shadow-sm border">
           <p class="text-xs text-gray-500">ผู้รับบริการ (วันนี้)</p>
@@ -70,7 +72,7 @@
       </div>
     </section>
 
-    <!-- Quick Actions -->
+    <!-- Quick actions -->
     <section class="mb-20">
       <h2 class="text-base font-semibold mb-3">คำสั่งด่วน</h2>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -97,15 +99,14 @@
   </main>
 
   <script>
-    // ====== CONFIG ======
-    const LIFF_ID = "YOUR_LIFF_ID";                 // 👈 ใส่ LIFF ID ที่ได้จาก LINE Developers
-    const API_BASE = "https://yourdomain.example/api"; // 👈 เปลี่ยนเป็น API ของคุณ (n8n/PHP)
-    const HOSPITAL_PORTAL_URL = "https://his.example/login"; // 👈 Portal/HIS URL
+    // ===== CONFIG (ปรับตามจริงเมื่อเชื่อม LIFF/API) =====
+    const USE_LIFF = false;        // ตั้งเป็น true เมื่อเปิดใช้ LIFF SDK ด้านบน
+    const LIFF_ID  = "YOUR_LIFF_ID";
+    const API_BASE = "https://example.com/api"; // เปลี่ยนเป็น API (n8n/PHP) ของคุณ
+    const HOSPITAL_PORTAL_URL = "https://his.example/login";
 
-    // ====== STATE ======
     let chart;
 
-    // ====== HELPERS ======
     const THB = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(n || 0);
     const NUM = n => new Intl.NumberFormat('th-TH').format(n || 0);
 
@@ -113,7 +114,7 @@
       const el = document.getElementById('alert');
       el.textContent = msg;
       el.classList.remove('hidden');
-      setTimeout(() => el.classList.add('hidden'), 5000);
+      setTimeout(() => el.classList.add('hidden'), 4000);
     }
 
     async function fetchJSON(path) {
@@ -122,132 +123,94 @@
       return await res.json();
     }
 
-    // ====== ACTIONS ======
     async function loadKPIs() {
       try {
-        const data = await fetchJSON(`${API_BASE}/hospital/kpi/today`);
+        // ตัวอย่าง: ดึงจาก API จริง
+        // const data = await fetchJSON(`${API_BASE}/hospital/kpi/today`);
+        // DEMO:
+        const data = { patients: 324, revenue: 428000, queue_waiting: 27, beds_free: 14 };
         document.getElementById('kpiPatients').textContent = NUM(data.patients);
-        document.getElementById('kpiRevenue').textContent = THB(data.revenue);
-        document.getElementById('kpiQueue').textContent = NUM(data.queue_waiting);
-        document.getElementById('kpiBeds').textContent = NUM(data.beds_free);
-      } catch (e) {
-        showAlert('ดึง KPI ไม่สำเร็จ');
-        console.error(e);
-      }
+        document.getElementById('kpiRevenue').textContent  = THB(data.revenue);
+        document.getElementById('kpiQueue').textContent    = NUM(data.queue_waiting);
+        document.getElementById('kpiBeds').textContent     = NUM(data.beds_free);
+      } catch (e) { console.error(e); showAlert('ดึง KPI ไม่สำเร็จ'); }
     }
 
     async function loadTopDiseases() {
       try {
-        const data = await fetchJSON(`${API_BASE}/hospital/top-diseases?limit=5`);
+        // ตัวอย่าง: ดึงจาก API จริง
+        // const data = await fetchJSON(`${API_BASE}/hospital/top-diseases?limit=5`);
+        // DEMO:
+        const data = [
+          { icd:'I10',  name:'ความดันโลหิตสูง', count:135 },
+          { icd:'J00',  name:'หวัด',            count:104 },
+          { icd:'E119', name:'เบาหวาน',         count:66  },
+          { icd:'J029', name:'คออักเสบ',        count:62  },
+          { icd:'B24',  name:'HIV',             count:81  },
+        ];
         const labels = data.map(d => `${d.icd} — ${d.name}`);
         const counts = data.map(d => d.count);
         const ctx = document.getElementById('diseaseChart');
+
         if (chart) chart.destroy();
         chart = new Chart(ctx, {
           type: 'bar',
           data: { labels, datasets: [{ label: 'จำนวนผู้ป่วย', data: counts }] },
-          options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true } }
-          }
+          options: { plugins: { legend: { display:false } }, scales: { y: { beginAtZero:true } } }
         });
-      } catch (e) {
-        showAlert('ดึง Top โรคไม่สำเร็จ');
-        console.error(e);
-      }
+      } catch (e) { console.error(e); showAlert('ดึง Top โรคไม่สำเร็จ'); }
     }
 
     async function sendToBot(text) {
       try {
-        if (!liff.isInClient()) {
-          showAlert('คำสั่งนี้ใช้ได้เมื่อเปิดใน LINE เท่านั้น');
+        if (!USE_LIFF || typeof liff === 'undefined') {
+          showAlert('ส่งข้อความได้เมื่อเปิดใน LINE และเปิดใช้ LIFF');
           return;
         }
-        await liff.sendMessages([{ type: 'text', text }]);
+        if (!liff.isInClient()) { showAlert('ต้องเปิดใน LINE App'); return; }
+        await liff.sendMessages([{ type:'text', text }]);
         showAlert('ส่งคำสั่งไปยังบอทแล้ว');
-      } catch (e) {
-        showAlert('ส่งข้อความไม่สำเร็จ');
-        console.error(e);
-      }
+      } catch (e) { console.error(e); showAlert('ส่งข้อความไม่สำเร็จ'); }
     }
 
-    async function openPortal() {
-      liff.openWindow({ url: HOSPITAL_PORTAL_URL, external: true });
-    }
-
-    async function openMap() {
-      liff.openWindow({ url: `${API_BASE}/hospital/map`, external: false });
-    }
+    function openPortal() { window.open(HOSPITAL_PORTAL_URL, '_blank'); }
+    function openMap()    { window.open(`${API_BASE}/hospital/map`, '_blank'); }
 
     async function doShare() {
       try {
-        if (liff.isApiAvailable('shareTargetPicker')) {
-          await liff.shareTargetPicker([
-            { type: 'text', text: 'สรุปผลวันนี้ — ดูรายงานที่นี่: ' + window.location.href }
-          ]);
+        if (USE_LIFF && typeof liff !== 'undefined' && liff.isApiAvailable('shareTargetPicker')) {
+          await liff.shareTargetPicker([{ type:'text', text:'ดูรายงาน: ' + window.location.href }]);
         } else {
-          await liff.sendMessages([{ type: 'text', text: 'ดูรายงาน: ' + window.location.href }]);
+          navigator.clipboard?.writeText(window.location.href);
+          showAlert('คัดลอกลิงก์แล้ว');
         }
-        showAlert('แชร์ลิงก์เรียบร้อย');
-      } catch (e) {
-        console.error(e);
-        showAlert('แชร์ไม่สำเร็จ');
-      }
+      } catch (e) { console.error(e); showAlert('แชร์ไม่สำเร็จ'); }
     }
 
     async function scanCode() {
       try {
-        if (!liff.isInClient() || !liff.isApiAvailable('scanCodeV2')) {
-          showAlert('สแกนได้เมื่อเปิดใน LINE และรองรับฟีเจอร์นี้');
+        if (!(USE_LIFF && typeof liff !== 'undefined' && liff.isInClient() && liff.isApiAvailable('scanCodeV2'))) {
+          showAlert('สแกนได้เมื่อเปิดใน LINE และเปิดใช้ LIFF');
           return;
         }
         const res = await liff.scanCodeV2();
-        if (res && res.value) showAlert('สแกนแล้ว: ' + res.value);
-      } catch (e) {
-        console.error(e);
-        showAlert('สแกนไม่สำเร็จ');
-      }
+        if (res?.value) showAlert('สแกนแล้ว: ' + res.value);
+      } catch (e) { console.error(e); showAlert('สแกนไม่สำเร็จ'); }
     }
 
-    // ====== BOOT ======
     async function boot() {
-      try {
-        await liff.init({ liffId: LIFF_ID });
-
-        // Login if needed (in external browser mode)
-        if (!liff.isLoggedIn()) liff.login();
-
-        // Load profile
-        const profile = await liff.getProfile();
-        document.getElementById('userName').textContent = `คุณ ${profile.displayName}`;
-        const pic = document.getElementById('userPicture');
-        pic.src = profile.pictureUrl; pic.classList.remove('hidden');
-
-        // Load data
-        await Promise.all([loadKPIs(), loadTopDiseases()]);
-
-      } catch (e) {
-        console.error(e);
-        document.getElementById('userName').textContent = 'โหมดทดสอบ (ไม่ได้อยู่ใน LINE หรือ LIFF ไม่พร้อม)';
-        showAlert('เปิดใช้งานแบบสาธิต — ใส่ LIFF_ID และ API ก่อนใช้งานจริง');
-        // Demo fallback data
-        document.getElementById('kpiPatients').textContent = NUM(324);
-        document.getElementById('kpiRevenue').textContent = THB(428000);
-        document.getElementById('kpiQueue').textContent = NUM(27);
-        document.getElementById('kpiBeds').textContent = NUM(14);
-        const ctx = document.getElementById('diseaseChart');
-        chart = new Chart(ctx, {
-          type: 'bar',
-          data: { labels: ['I10 — ความดัน', 'J00 — หวัด', 'E119 — เบาหวาน', 'J029 — คออักเสบ', 'B24 — HIV'], datasets: [{ label: 'จำนวนผู้ป่วย', data: [135, 104, 66, 62, 81] }] },
-          options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-        });
-      }
-
-      // Wire UI buttons
+      // โหมดสาธิต (ไม่ใช้ LIFF) — ทำงานบน GitHub Pages ทันที
+      await Promise.all([loadKPIs(), loadTopDiseases()]);
       document.getElementById('btnShare').addEventListener('click', doShare);
       document.getElementById('btnScan').addEventListener('click', scanCode);
       document.getElementById('btnRefresh').addEventListener('click', () => { loadKPIs(); loadTopDiseases(); });
+
+      // ถ้าจะใช้ LIFF: เปิด USE_LIFF=true และเปิดสคริปต์ LIFF ด้านบน จากนั้น:
+      // await liff.init({ liffId: LIFF_ID });
+      // if (!liff.isLoggedIn()) liff.login();
+      // const profile = await liff.getProfile();
+      // document.getElementById('userName').textContent = `คุณ ${profile.displayName}`;
+      // const pic = document.getElementById('userPicture'); pic.src = profile.pictureUrl; pic.classList.remove('hidden');
     }
 
     boot();
